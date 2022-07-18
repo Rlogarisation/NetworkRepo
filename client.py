@@ -1,17 +1,27 @@
-#!/usr/bin/python3
 """
-    Python 3
-    Usage: python3 TCPClient3.py localhost 12000
-    coding: utf-8
-    
-    Author: Wei Song (Tutor for COMP3331/9331)
+Assignment for 2022T2 COMP3331
+Python 3
+Usage: python3 client.py SERVER_IP SERVER_PORT
+coding: utf-8
+
+Author: Zheng Luo (z5206267)
 """
 from socket import *
 import sys
 
+commandPrompting = "The following commands are available: \n\
+BCM: Broadcast messages to all the active users i.e. public messages \n\
+ATU: Display active users, \n\
+SRS: Separate chat room service, in which users can build a separate room for part of active users and send messages in the separate room\n\
+RDM: Read messages, \n\
+OUT: Log out, \n\
+UPD: Upload file \n\
+Please enter the command, and the arguments separate by white space: "
+acceptedCommand = ["BCM", "ATU", "SRS", "RDM", "OUT", "UPD"]
+
 #Server would be running on the same host as Client
 if len(sys.argv) != 3:
-    print("\n===== Error usage, python3 TCPClient3.py SERVER_IP SERVER_PORT ======\n")
+    print("\n===== Error usage, python3 client.py SERVER_IP SERVER_PORT ======\n")
     exit(0)
 serverHost = sys.argv[1]
 serverPort = int(sys.argv[2])
@@ -51,7 +61,29 @@ while True:
     else:
         break
 
-
-
+while True:
+    while True:
+        inputmsg = input(commandPrompting)
+        inputList = inputmsg.split()
+        command = inputList[0]
+        if command in acceptedCommand:
+            if command == "BCM" and len(inputList) == 1:
+                print("===== Error usage, BCM MESSAGE======\n")
+            else:
+                break
+        else:    
+            print(f"Command {command} is not recognised, please try again!")
+    if command == "BCM":
+        inputmsg = ""
+        for i in range(1, len(inputList)):
+            inputmsg += inputList[i] + ' '
+        BCMmsg = f"BCM {username} {inputmsg}"
+        clientSocket.sendall(BCMmsg.encode())
+        data = clientSocket.recv(1024)
+        BCMmsgResponse = data.decode()
+        print(f"BCM msg has been received at server: {BCMmsgResponse}")
+    if command == "OUT":
+        break
+        
 # close the socket
 clientSocket.close()

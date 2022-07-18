@@ -1,26 +1,29 @@
 """
-    Sample code for Multi-Threaded Server
-    Python 3
-    Usage: python3 TCPserver3.py localhost 12000
-    coding: utf-8
-    
-    Author: Wei Song (Tutor for COMP3331/9331)
+Assignment for 2022T2 COMP3331
+Python 3
+Usage: python3 server.py server_port number_of_consecutive_failed_attempts
+coding: utf-8
+
+Author: Zheng Luo (z5206267)
 """
 from socket import *
 from threading import Thread
 from helper import *
-import sys, select
+import sys, select, time
+
+namedTuple = time.localtime()
+timeString = time.strftime("%d %b %Y, %H:%M:%S", namedTuple)
 
 
 # acquire server host and port from command line parameter
 if len(sys.argv) != 3:
-    print("\n===== Error usage, python3 TCPServer3.py server_port number_of_consecutive_failed_attempts======\n")
+    print("\n===== Error usage, python3 server.py server_port number_of_consecutive_failed_attempts======\n")
     exit(0)
 serverHost = "127.0.0.1"
 serverPort = int(sys.argv[1])
 serverAddress = (serverHost, serverPort)
-failAttempts = sys.argv[2]
-if not isinstance(failAttempts, int) or failAttempts < 1 or failAttempts > 5:
+failAttempts = int(sys.argv[2])
+if failAttempts < 1 or failAttempts > 5:
     print(f"\n===== Error usage, Invalid number of allowed failed consecutive attempt: {failAttempts}.======\n")
     exit(0)
 
@@ -28,6 +31,10 @@ if not isinstance(failAttempts, int) or failAttempts < 1 or failAttempts > 5:
 serverSocket = socket(AF_INET, SOCK_STREAM)
 serverSocket.bind(serverAddress)
 
+resetUserlog()
+resetBCMRecord()
+
+activeUser = 0
 """
     Define multi-thread class for client
     This class would be used to define the instance for each connection from each client
@@ -45,9 +52,12 @@ class ClientThread(Thread):
         
         print("===== New connection created for: ", clientAddress)
         self.clientAlive = True
+        activeUser += 1
+        
         
     def run(self):
         message = ''
+        currentLoginAttempt = 0
         
         while self.clientAlive:
             # use recv() to receive message from the client
@@ -62,25 +72,36 @@ class ClientThread(Thread):
             
             # handle message from the client
             print(message)
+            username = ''
+            BCMmsgCounter = 0
             command = message[0]
             operationType = message[1]
             if command == 'login':
                 print("[recv] New login request")
-                # self.process_login()
                 if operationType == "username":
                     self.clientSocket.send(f"{operationType}{str(usernameExist(message[2]))}".encode())
                 if operationType == "auth":
-                    self.clientSocket.send(f"{operationType}{str(userAuthenticator(message[2], message[3]))}".encode())
-            elif command == 'download':
-                print("[recv] Download request")
-                message = 'download filename'
-                print("[send] " + message)
-                self.clientSocket.send(message.encode())
-            else:
-                print("[recv] " + message)
-                print("[send] Cannot understand this message")
-                message = 'Cannot understand this message'
-                self.clientSocket.send(message.encode())
+                    result = userAuthenticator(message[2], message[3])
+                    self.clientSocket.send(f"{operationType}{str(result)}".encode())
+                    if result:
+                        username = message[2]
+                        # TODO: Need to replace the seq number, client IP address, and include client UDP server port number
+                        recordTimestamp(1, message[2])
+                # TODO: if currentLoginAttempt == failAttempts:
+
+                currentLoginAttempt += 1
+            elif command == 'BCM':
+                BCMmsg = ""
+                for i in range(2, len(message)):
+                    BCMmsg += message[i] + ' '
+                print(BCMmsg)
+                # Reply to client
+                self.clientSocket.send(f"BCM {BCMmsgCounter} {timeString}".encode())
+                # Record BCM msg.
+                recordBCM(BCMmsgCounter, username, BCMmsg)
+                BCMmsgCounter += 1
+                
+                
     
     """
         You can create more customized APIs here, e.g., logic for processing user authentication
