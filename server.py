@@ -6,13 +6,11 @@ coding: utf-8
 
 Author: Zheng Luo (z5206267)
 """
+import sys
 from socket import *
 from threading import Thread
 from helper import *
-import sys, select, time
 
-namedTuple = time.localtime()
-timeString = time.strftime("%d %b %Y, %H:%M:%S", namedTuple)
 
 
 # acquire server host and port from command line parameter
@@ -34,7 +32,7 @@ serverSocket.bind(serverAddress)
 resetUserlog()
 resetBCMRecord()
 
-activeUser = 0
+activeUserList = []
 """
     Define multi-thread class for client
     This class would be used to define the instance for each connection from each client
@@ -49,21 +47,21 @@ class ClientThread(Thread):
         self.clientAddress = clientAddress
         self.clientSocket = clientSocket
         self.clientAlive = False
-        
+        # WHAT IS CLIENT PORT NUMBER?
         print("===== New connection created for: ", clientAddress)
         self.clientAlive = True
-        activeUser += 1
+        
         
         
     def run(self):
         message = ''
-        currentLoginAttempt = 0
-        
+        # currentLoginAttempt = 0
+        BCMmsgCounter = 1
+
         while self.clientAlive:
             # use recv() to receive message from the client
             data = self.clientSocket.recv(1024)
             message = data.decode().split()
-            
             # if the message from client is empty, the client would be off-line then set the client as offline (alive=Flase)
             if len(message) < 2:
                 self.clientAlive = False
@@ -72,37 +70,44 @@ class ClientThread(Thread):
             
             # handle message from the client
             print(message)
-            username = ''
-            BCMmsgCounter = 0
+            # username = ''
             command = message[0]
-            operationType = message[1]
             if command == 'login':
+                operationType = message[1]
                 print("[recv] New login request")
                 if operationType == "username":
                     self.clientSocket.send(f"{operationType}{str(usernameExist(message[2]))}".encode())
-                if operationType == "auth":
+                elif operationType == "auth":
                     result = userAuthenticator(message[2], message[3])
                     self.clientSocket.send(f"{operationType}{str(result)}".encode())
-                    if result:
-                        username = message[2]
-                        # TODO: Need to replace the seq number, client IP address, and include client UDP server port number
-                        recordTimestamp(1, message[2])
-                # TODO: if currentLoginAttempt == failAttempts:
-
-                currentLoginAttempt += 1
+                    # TODO: if currentLoginAttempt == failAttempts:
+                elif operationType == "port":
+                    # Means login successfully, and UDP port has been attached.
+                    username = message[2]
+                    UDPportNumber = message[3]
+                    activeUserList.append(
+                        {
+                            'username':username,
+                            'address':self.clientAddress,
+                            'UDPPortNumber':UDPportNumber,
+                            'activeTime': printCurrentTime()
+                        }
+                    )
+                    recordTimestamp(len(activeUserList), message[2], self.clientAddress[0], UDPportNumber)
+                # currentLoginAttempt += 1
             elif command == 'BCM':
                 BCMmsg = ""
                 for i in range(2, len(message)):
                     BCMmsg += message[i] + ' '
                 print(BCMmsg)
                 # Reply to client
-                self.clientSocket.send(f"BCM {BCMmsgCounter} {timeString}".encode())
+                self.clientSocket.send(f"BCM {BCMmsgCounter} {printCurrentTime()}".encode())
                 # Record BCM msg.
                 recordBCM(BCMmsgCounter, username, BCMmsg)
                 BCMmsgCounter += 1
-                
-                
-    
+            # elif command == 'ATU':
+
+
     """
         You can create more customized APIs here, e.g., logic for processing user authentication
         Each api can be used to handle one specific function, for example:

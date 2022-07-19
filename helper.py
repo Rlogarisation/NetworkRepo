@@ -8,9 +8,6 @@ Author: Zheng Luo (z5206267)
 """
 
 import time, os
-namedTuple = time.localtime()
-timeString = time.strftime("%d %b %Y, %H:%M:%S", namedTuple)
-
 
 def usernameExist(username):
     with open("credentials.txt") as file:
@@ -27,9 +24,10 @@ def userAuthenticator(username, password):
                 return True 
     return False
 
-def recordTimestamp(seq, username):
+def recordTimestamp(seq, username, clientIP, UDPPort):
     file = open("userlog.txt", "a")
-    file.write(f"{seq}; {timeString}; {username}\n")
+    file.write(f"{seq}; {printCurrentTime()}; {username}; {clientIP}; {UDPPort}\n")
+    file.close()
 
 def resetUserlog():
     if os.path.exists("userlog.txt"):
@@ -37,8 +35,13 @@ def resetUserlog():
 
 def recordBCM(msgNumber, username, msg):
     file = open("messagelog.txt", "a")
-    file.write(f"{msgNumber}; {timeString}; {username}; {msg}\n")
+    file.write(f"{msgNumber}; {printCurrentTime()}; {username}; {msg}\n")
+    file.close()
 
 def resetBCMRecord():
     if os.path.exists("messagelog.txt"):
         os.remove("messagelog.txt")
+
+def printCurrentTime():
+    namedTuple = time.localtime()
+    return time.strftime("%d %b %Y %H:%M:%S", namedTuple)

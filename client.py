@@ -1,7 +1,7 @@
 """
 Assignment for 2022T2 COMP3331
 Python 3
-Usage: python3 client.py SERVER_IP SERVER_PORT
+Usage: python3 client.py SERVER_IP SERVER_PORT CLIENT_UDP_SERVER_PORT
 coding: utf-8
 
 Author: Zheng Luo (z5206267)
@@ -9,7 +9,7 @@ Author: Zheng Luo (z5206267)
 from socket import *
 import sys
 
-commandPrompting = "The following commands are available: \n\
+commandPrompting = "===========The following commands are available:===========\n\
 BCM: Broadcast messages to all the active users i.e. public messages \n\
 ATU: Display active users, \n\
 SRS: Separate chat room service, in which users can build a separate room for part of active users and send messages in the separate room\n\
@@ -20,11 +20,12 @@ Please enter the command, and the arguments separate by white space: "
 acceptedCommand = ["BCM", "ATU", "SRS", "RDM", "OUT", "UPD"]
 
 #Server would be running on the same host as Client
-if len(sys.argv) != 3:
-    print("\n===== Error usage, python3 client.py SERVER_IP SERVER_PORT ======\n")
+if len(sys.argv) != 4:
+    print("\n===== Error usage, python3 client.py SERVER_IP SERVER_PORT CLIENT_UDP_SERVER_PORT======\n")
     exit(0)
 serverHost = sys.argv[1]
 serverPort = int(sys.argv[2])
+UDPServerPort = sys.argv[3]
 serverAddress = (serverHost, serverPort)
 
 # define a socket for the client side, it would be used to communicate with the server
@@ -51,11 +52,13 @@ while True:
         data = clientSocket.recv(1024)
         passwordResponse = data.decode()
         if passwordResponse == "authTrue":
-            print("Login in successfully!")
+            print("Login in successfully! Welcome!")
+            portInfoMsg = f"login port {username} {UDPServerPort}"
+            clientSocket.sendall(portInfoMsg.encode())
             break
         else:
             print("Password incorrect, please try again.")
-    # There is no such username, create a new account.
+    # There is no such username.
     if usernameResponse == "usernameFalse":
         print("There is no such username, please try again.")
     else:
@@ -82,6 +85,11 @@ while True:
         data = clientSocket.recv(1024)
         BCMmsgResponse = data.decode()
         print(f"BCM msg has been received at server: {BCMmsgResponse}")
+    if command == "ATU":
+        clientSocket.sendall("ATU".encode())
+        data = clientSocket.recv(1024)
+        ATUResponse = data.decode()
+        print(ATUResponse)
     if command == "OUT":
         break
         
