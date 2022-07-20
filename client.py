@@ -101,6 +101,7 @@ while True:
         data = clientSocket.recv(1024)
         print(data.decode())
     elif command == "OUT":
+        print("Goodbye! See you next time!")
         break
         
 # close the socket

@@ -96,7 +96,7 @@ class ClientThread(Thread):
                             'activeTime': printCurrentTime()
                         }
                     )
-                    recordTimestamp(len(activeUserList), message[2], self.clientAddress[0], UDPportNumber)
+                    recordTimestamp(len(activeUserList), username, self.clientAddress[0], UDPportNumber)
                 # currentLoginAttempt += 1
             elif command == 'BCM':
                 BCMmsg = ""
@@ -224,6 +224,12 @@ class ClientThread(Thread):
                 if RDMReplyMsg == "":
                     RDMReplyMsg = "No new message"
                 self.clientSocket.send(RDMReplyMsg.encode())
+            elif command == "OUT":
+                # Remove current user from activeUserList:
+                for user in activeUserList:
+                    if user["username"] == username:
+                        activeUserList.remove(user)
+                # TODO: Update the userlog.txt by removing the current user and updating seq.
 
 
     """
