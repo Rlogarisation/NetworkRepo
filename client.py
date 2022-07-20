@@ -19,7 +19,7 @@ RDM: Read messages, usage: RDM messageType timestamp\n\
 OUT: Log out, usage: OUT\n\
 UPD: Upload file, usage: UPD username filename\n\
 Please enter the command as suggested by usage:\n"
-acceptedCommand = ["BCM", "ATU", "SRS", "RDM", "OUT", "UPD"]
+acceptedCommand = ["BCM", "ATU", "SRB", "SRM", "RDM", "OUT", "UPD"]
 
 #Server would be running on the same host as Client
 if len(sys.argv) != 4:
@@ -72,8 +72,12 @@ while True:
         inputList = inputmsg.split()
         command = inputList[0]
         if command in acceptedCommand:
-            if command == "BCM" and len(inputList) == 1:
-                print("===== Error usage, BCM MESSAGE======\n")
+            if command == "BCM" and len(inputList) < 2:
+                print("===== Error usage, BCM message======\n")
+            elif command == "SRB" and len(inputList) < 2:
+                print("===== Error usage, SRB username1 username2 ...======\n")
+            elif command == "SRM" and len(inputList) < 3:
+                print("===== Error usage, SRM roomID message======\n")
             else:
                 break
         else:    
@@ -87,12 +91,16 @@ while True:
         data = clientSocket.recv(1024)
         BCMmsgResponse = data.decode()
         print(f"BCM msg has been received at server: {BCMmsgResponse}")
-    if command == "ATU":
+    elif command == "ATU":
         clientSocket.sendall("ATU".encode())
         data = clientSocket.recv(1024)
         ATUResponse = data.decode()
         print(ATUResponse)
-    if command == "OUT":
+    elif command == "SRB" or command == "SRM":
+        clientSocket.sendall(inputmsg.encode())
+        data = clientSocket.recv(1024)
+        print(data.decode())
+    elif command == "OUT":
         break
         
 # close the socket

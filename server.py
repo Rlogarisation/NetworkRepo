@@ -31,8 +31,11 @@ serverSocket.bind(serverAddress)
 
 resetUserlog()
 resetBCMRecord()
+# TODO: reset SRM room records.
 
+BCMmsgCounter = 1
 activeUserList = []
+separateRoomList = []
 """
     Define multi-thread class for client
     This class would be used to define the instance for each connection from each client
@@ -56,7 +59,7 @@ class ClientThread(Thread):
     def run(self):
         message = ''
         # currentLoginAttempt = 0
-        BCMmsgCounter = 1
+        
 
         while self.clientAlive:
             # use recv() to receive message from the client
@@ -107,7 +110,6 @@ class ClientThread(Thread):
                 BCMmsgCounter += 1
             elif command == 'ATU':
                 ATUMsg = ""
-                print(activeUserList)
                 for user in activeUserList:
                     listUsername = user["username"]
                     listIPAddress = user["address"][0]
@@ -118,6 +120,72 @@ class ClientThread(Thread):
                 if ATUMsg == "":
                     ATUMsg = "no other active user"
                 self.clientSocket.send(ATUMsg.encode())
+            elif command == 'SRB':
+                SRBMsg = ""
+                currentMemberList = [username]
+                # Check all user exist and active.
+                for i in range(1, len(message)):
+                    if not usernameExist(message[i]):
+                        SRBMsg += f"user {message[i]} is not exist!\n"
+                    elif not userIsActive(message[i], activeUserList):
+                        SRBMsg += f"user {message[i]} is not active!\n"
+                    else:
+                        currentMemberList.append(message[i])
+                
+                # Check whether the same room has existed.
+                existedRoom = repeatedRoomIsExist(separateRoomList, currentMemberList)
+                if existedRoom is not None:
+                    SRBMsg = f"A separate room (ID: {existedRoom}) already created for these users"
+                # All the provided usernames exist and all the corresponding users are online
+                # Create separate room for them:
+                if SRBMsg == "":
+                    currentRoomID = len(separateRoomList) + 1
+                    separateRoomList.append(
+                        {
+                            "roomID": currentRoomID,
+                            "memberList": currentMemberList,
+                            "message":[]
+                        }
+                    )
+                    SRBMsg = f"Separate chat room has been created as room ID: {currentRoomID}, users in this room: {currentMemberList}\n"
+                self.clientSocket.send(SRBMsg.encode())
+            elif command == "SRM":
+                print(separateRoomList)
+                SRMReplyMsg = ""
+                SRMInputMsg = ""
+                inputRoomID = int(message[1])
+                for i in range(2, len(message)):
+                    SRMInputMsg += message[i] + " "
+                # Check if the room with provided room ID exists
+                if not roomIsExist(inputRoomID, separateRoomList):
+                    SRMReplyMsg = f"The separate room (ID: {inputRoomID}) does not exist"
+                # Check if the client is a member of the separate room
+                elif not memberIsPartOfRoom(username, separateRoomList):
+                    SRMReplyMsg = f"You are not in this separate room (ID: {inputRoomID})chat"
+                # Append the message, the username, and a timestamp at the end of the message log file
+                else:
+                    currentTime = printCurrentTime()
+                    currentNumberOfMsg = 0
+                    
+                    # Append the current msg into separated room list.
+                    for currentRoom in separateRoomList:
+                        if currentRoom["roomID"] == inputRoomID:
+                            currentNumberOfMsg = len(currentRoom["message"])
+                            currentRoom["message"].append(
+                                {
+                                    "messageNumber": currentNumberOfMsg + 1,
+                                    "sentTime": currentTime,
+                                    "sender": username,
+                                    "content": SRMInputMsg
+                                }
+                            )
+                    
+                    recordSRM(inputRoomID, currentNumberOfMsg + 1, currentTime, username, SRMInputMsg)
+                    SRMReplyMsg = f"SRM message {currentNumberOfMsg + 1} has been received at {currentTime}\n"
+                self.clientSocket.send(SRMReplyMsg.encode())
+
+
+
 
 
     """

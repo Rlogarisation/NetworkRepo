@@ -12,9 +12,9 @@ import time, os
 def usernameExist(username):
     with open("credentials.txt") as file:
         for i in file.readlines():
-            if username == i.split()[0]:
+            if i.split()[0] == username:
                 return True
-    return False
+        return False
 
 def userAuthenticator(username, password):
     with open("credentials.txt") as file:
@@ -22,7 +22,8 @@ def userAuthenticator(username, password):
             info = i.split()
             if username == info[0] and password == info[1]:
                 return True 
-    return False
+        return False
+
 
 def recordTimestamp(seq, username, clientIP, UDPPort):
     file = open("userlog.txt", "a")
@@ -45,3 +46,33 @@ def resetBCMRecord():
 def printCurrentTime():
     namedTuple = time.localtime()
     return time.strftime("%d %b %Y %H:%M:%S", namedTuple)
+
+def userIsActive(username, activeUserList):
+    for user in activeUserList:
+        if username == user["username"]:
+            return True
+    return False
+
+def repeatedRoomIsExist(roomList, userList):
+    for room in roomList:
+        if set(room["memberList"]) == set(userList):
+            return room["roomID"]
+    return None
+
+def roomIsExist(roomID, roomList):
+    for room in roomList:
+        if roomID == room["roomID"]:
+            return True
+    return False
+
+def memberIsPartOfRoom(username, roomList):
+    for room in roomList:
+        if username in room["memberList"]:
+            return True
+    return False
+
+def recordSRM(roomID, msgNumber, time, username, msg):
+    file = open(f"SR_{roomID}_messageLog.txt", "a")
+    file.write(f"{msgNumber}; {time}; {username}; {msg}\n")
+    file.close()
+
