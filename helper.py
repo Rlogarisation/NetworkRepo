@@ -8,6 +8,7 @@ Author: Zheng Luo (z5206267)
 """
 
 import time, os
+from datetime import datetime
 
 def usernameExist(username):
     with open("credentials.txt") as file:
@@ -76,3 +77,10 @@ def recordSRM(roomID, msgNumber, time, username, msg):
     file.write(f"{msgNumber}; {time}; {username}; {msg}\n")
     file.close()
 
+def timeComparator(timeA, timeB):
+    convertedTimeA = datetime.strptime(timeA, "%d %b %Y %H:%M:%S")
+    convertedTimeB = datetime.strptime(timeB, "%d %b %Y %H:%M:%S")
+    if convertedTimeA < convertedTimeB:
+        return -1
+    else :
+        return 1

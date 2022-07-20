@@ -96,7 +96,7 @@ while True:
         data = clientSocket.recv(1024)
         ATUResponse = data.decode()
         print(ATUResponse)
-    elif command == "SRB" or command == "SRM":
+    elif command == "SRB" or command == "SRM" or command == "RDM":
         clientSocket.sendall(inputmsg.encode())
         data = clientSocket.recv(1024)
         print(data.decode())

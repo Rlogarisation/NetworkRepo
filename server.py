@@ -193,15 +193,24 @@ class ClientThread(Thread):
                     SRMReplyMsg = f"SRM message {currentNumberOfMsg + 1} has been received at {currentTime}\n"
                 self.clientSocket.send(SRMReplyMsg.encode())
             elif command == "RDM":
+                RDMReplyMsg = ""
                 messageType = message[1]
-                # inputTime = 
+                inputTime = ""
+                for i in range(2, len(message)):
+                    inputTime += message[i] + " "
                 # Broadcast information retrival
                 if messageType == "b":
-                    # TODO: implement time comparison function.
-                    continue
+                    for BCMMsgs in BCMMsgList:
+                        currentMsgSender = BCMMsgs["sender"]
+                        currentMsgSentTime = BCMMsgs["sentTime"]
+                        currentMsgNumber = BCMMsgs["BCMMessageNumber"]
+                        currentMsgContent =BCMMsgs["content"]
+                        if timeComparator(inputTime.rstrip(), currentMsgSentTime) < 0:
+                            RDMReplyMsg += f"#{currentMsgNumber} {currentMsgSender}@{currentMsgSentTime}: {currentMsgContent}\n"
                 # Separate room messages retrival
                 elif messageType == "s":
-                    continue
+                    break
+                self.clientSocket.send(RDMReplyMsg.encode())
 
 
     """
