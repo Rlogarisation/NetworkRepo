@@ -33,7 +33,7 @@ resetUserlog()
 resetBCMRecord()
 # TODO: reset SRM room records.
 
-BCMmsgCounter = 1
+BCMMsgList = []
 activeUserList = []
 separateRoomList = []
 """
@@ -102,12 +102,21 @@ class ClientThread(Thread):
                 BCMmsg = ""
                 for i in range(2, len(message)):
                     BCMmsg += message[i] + ' '
-                print(BCMmsg)
-                # Reply to client
-                self.clientSocket.send(f"BCM {BCMmsgCounter} {printCurrentTime()}".encode())
+                BCMReceivedTime = printCurrentTime()
+                currentBCMMsgLength = len(BCMMsgList)
                 # Record BCM msg.
-                recordBCM(BCMmsgCounter, username, BCMmsg)
-                BCMmsgCounter += 1
+                recordBCM(currentBCMMsgLength + 1, BCMReceivedTime, username, BCMmsg)
+                # Append current Msg into BCMMsgList.
+                BCMMsgList.append(
+                    {
+                        "BCMMessageNumber": currentBCMMsgLength + 1,
+                        "sentTime": BCMReceivedTime,
+                        "sender": username,
+                        "content": BCMmsg
+                    }
+                )
+                # Reply to client
+                self.clientSocket.send(f"BCM {currentBCMMsgLength + 1} {BCMReceivedTime}".encode())
             elif command == 'ATU':
                 ATUMsg = ""
                 for user in activeUserList:
@@ -183,9 +192,16 @@ class ClientThread(Thread):
                     recordSRM(inputRoomID, currentNumberOfMsg + 1, currentTime, username, SRMInputMsg)
                     SRMReplyMsg = f"SRM message {currentNumberOfMsg + 1} has been received at {currentTime}\n"
                 self.clientSocket.send(SRMReplyMsg.encode())
-
-
-
+            elif command == "RDM":
+                messageType = message[1]
+                # inputTime = 
+                # Broadcast information retrival
+                if messageType == "b":
+                    # TODO: implement time comparison function.
+                    continue
+                # Separate room messages retrival
+                elif messageType == "s":
+                    continue
 
 
     """

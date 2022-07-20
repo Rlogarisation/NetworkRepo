@@ -34,9 +34,9 @@ def resetUserlog():
     if os.path.exists("userlog.txt"):
         os.remove("userlog.txt")
 
-def recordBCM(msgNumber, username, msg):
+def recordBCM(msgNumber, time, username, msg):
     file = open("messagelog.txt", "a")
-    file.write(f"{msgNumber}; {printCurrentTime()}; {username}; {msg}\n")
+    file.write(f"{msgNumber}; {time}; {username}; {msg}\n")
     file.close()
 
 def resetBCMRecord():

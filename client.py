@@ -10,12 +10,12 @@ from socket import *
 import sys
 
 commandPrompting = "\
-=============The following commands are available:=============\n\
+======================The following commands are available:======================\n\
 BCM: Public messages, usage: BCM message\n\
 ATU: Display active users, usage: ATU\n\
 SRB: Separate room building, usage: SRB username1 username2 ...\n\
 SRM: Separate room message, usage: SRM roomID message\n\
-RDM: Read messages, usage: RDM messageType timestamp\n\
+RDM: Read messages, usage: RDM messageType(b or s) timestamp(1 Jun 2022 16:00:00)\n\
 OUT: Log out, usage: OUT\n\
 UPD: Upload file, usage: UPD username filename\n\
 Please enter the command as suggested by usage:\n"
