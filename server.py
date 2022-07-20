@@ -63,7 +63,7 @@ class ClientThread(Thread):
             data = self.clientSocket.recv(1024)
             message = data.decode().split()
             # if the message from client is empty, the client would be off-line then set the client as offline (alive=Flase)
-            if len(message) < 2:
+            if len(message) < 1:
                 self.clientAlive = False
                 print("===== the user disconnected - ", clientAddress)
                 break
@@ -105,7 +105,19 @@ class ClientThread(Thread):
                 # Record BCM msg.
                 recordBCM(BCMmsgCounter, username, BCMmsg)
                 BCMmsgCounter += 1
-            # elif command == 'ATU':
+            elif command == 'ATU':
+                ATUMsg = ""
+                print(activeUserList)
+                for user in activeUserList:
+                    listUsername = user["username"]
+                    listIPAddress = user["address"][0]
+                    listPortNumber = user["address"][1]
+                    listTime = user["activeTime"]
+                    if not listUsername == username:
+                        ATUMsg += f"{listUsername} at IP {listIPAddress} port {listPortNumber} active since {listTime}\n"
+                if ATUMsg == "":
+                    ATUMsg = "no other active user"
+                self.clientSocket.send(ATUMsg.encode())
 
 
     """
