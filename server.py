@@ -209,7 +209,20 @@ class ClientThread(Thread):
                             RDMReplyMsg += f"#{currentMsgNumber} {currentMsgSender}@{currentMsgSentTime}: {currentMsgContent}\n"
                 # Separate room messages retrival
                 elif messageType == "s":
-                    break
+                    for currentRoom in separateRoomList:
+                        currentRoomID = currentRoom["roomID"]
+                        currentRoomList = currentRoom["memberList"]
+                        if username in currentRoomList:
+                            for roomMsg in currentRoom["message"]:
+                                currentRoomMsgNumber = roomMsg["messageNumber"]
+                                currentRoomMsgSender = roomMsg["sender"]
+                                currentRoomMsgSentTime = roomMsg["sentTime"]
+                                currentRoomMsgContent = roomMsg["content"]
+                                if timeComparator(inputTime.rstrip(), currentRoomMsgSentTime) < 0:
+                                    RDMReplyMsg += f"Room{currentRoomID} #{currentRoomMsgNumber} {currentRoomMsgSender}@{currentRoomMsgSentTime}: {currentRoomMsgContent}\n"
+
+                if RDMReplyMsg == "":
+                    RDMReplyMsg = "No new message"
                 self.clientSocket.send(RDMReplyMsg.encode())
 
 
