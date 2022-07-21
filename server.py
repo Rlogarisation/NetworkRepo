@@ -88,15 +88,16 @@ class ClientThread(Thread):
                     # Means login successfully, and UDP port has been attached.
                     username = message[2]
                     UDPportNumber = message[3]
+                    loginInTime = printCurrentTime()
                     activeUserList.append(
                         {
                             'username':username,
                             'address':self.clientAddress,
                             'UDPPortNumber':UDPportNumber,
-                            'activeTime': printCurrentTime()
+                            'activeTime': loginInTime
                         }
                     )
-                    recordTimestamp(len(activeUserList), username, self.clientAddress[0], UDPportNumber)
+                    updateActiveUserLog(activeUserList)
                 # currentLoginAttempt += 1
             elif command == 'BCM':
                 BCMmsg = ""
@@ -229,7 +230,9 @@ class ClientThread(Thread):
                 for user in activeUserList:
                     if user["username"] == username:
                         activeUserList.remove(user)
-                # TODO: Update the userlog.txt by removing the current user and updating seq.
+                # Update the userlog.txt by removing the current user and updating seq.
+                updateActiveUserLog(activeUserList)
+
 
 
     """

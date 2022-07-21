@@ -102,6 +102,7 @@ while True:
         print(data.decode())
     elif command == "OUT":
         print("Goodbye! See you next time!")
+        clientSocket.sendall(inputmsg.encode())
         break
         
 # close the socket

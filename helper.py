@@ -26,9 +26,26 @@ def userAuthenticator(username, password):
         return False
 
 
-def recordTimestamp(seq, username, clientIP, UDPPort):
+def updateActiveUserLog(activeUserList):
+    '''
+    activeUserList structure format:
+    [
+        {
+            'username':username,
+            'address':self.clientAddress,
+            'UDPPortNumber':UDPportNumber,
+            'activeTime': loginInTime
+        }
+    ]
+    '''
+    resetUserlog()
     file = open("userlog.txt", "a")
-    file.write(f"{seq}; {printCurrentTime()}; {username}; {clientIP}; {UDPPort}\n")
+    for index, user in enumerate(activeUserList):
+        currentUserActiveTime = user["activeTime"]
+        currentUsername = user["username"]
+        currentClientIP = user["address"][0]
+        currentUDPPortNumber = user["UDPPortNumber"]
+        file.write(f"{index + 1}; {currentUserActiveTime}; {currentUsername}; {currentClientIP}; {currentUDPPortNumber}\n")
     file.close()
 
 def resetUserlog():
