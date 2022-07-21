@@ -25,6 +25,11 @@ def userAuthenticator(username, password):
                 return True 
         return False
 
+def userInBlockedList(username, blockedList):
+    for name in blockedList:
+        if username == name["username"]:
+            return True
+    return False
 
 def updateActiveUserLog(activeUserList):
     '''
@@ -93,6 +98,10 @@ def recordSRM(roomID, msgNumber, time, username, msg):
     file = open(f"SR_{roomID}_messageLog.txt", "a")
     file.write(f"{msgNumber}; {time}; {username}; {msg}\n")
     file.close()
+
+def resetSRMRecord():
+    if os.path.exists("messagelog.txt"):
+        os.remove("messagelog.txt")
 
 def timeComparator(timeA, timeB):
     convertedTimeA = datetime.strptime(timeA, "%d %b %Y %H:%M:%S")

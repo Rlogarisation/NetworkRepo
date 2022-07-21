@@ -7,7 +7,7 @@ coding: utf-8
 Author: Zheng Luo (z5206267)
 """
 from socket import *
-import sys
+import sys, time
 
 commandPrompting = "\
 ======================The following commands are available:======================\n\
@@ -58,8 +58,11 @@ while True:
             portInfoMsg = f"login port {username} {UDPServerPort}"
             clientSocket.sendall(portInfoMsg.encode())
             break
-        else:
+        elif passwordResponse == "authFalse":
             print("Password incorrect, please try again.")
+        else:
+            print("Password incorrect, and your account has been blocked due to too many attempts. \nPlease try again after 10 seconds.")
+            time.sleep(10)
     # There is no such username.
     if usernameResponse == "usernameFalse":
         print("There is no such username, please try again.")

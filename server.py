@@ -22,7 +22,7 @@ serverPort = int(sys.argv[1])
 serverAddress = (serverHost, serverPort)
 failAttempts = int(sys.argv[2])
 if failAttempts < 1 or failAttempts > 5:
-    print(f"\n===== Error usage, Invalid number of allowed failed consecutive attempt: {failAttempts}.======\n")
+    print(f"\n===== Error usage, Invalid number of allowed failed consecutive attempt: 1 <= {failAttempts} <= 5======\n")
     exit(0)
 
 # define socket for the server side and bind address
@@ -33,6 +33,7 @@ resetUserlog()
 resetBCMRecord()
 # TODO: reset SRM room records.
 
+blockedAccList = []
 BCMMsgList = []
 activeUserList = []
 separateRoomList = []
@@ -50,7 +51,6 @@ class ClientThread(Thread):
         self.clientAddress = clientAddress
         self.clientSocket = clientSocket
         self.clientAlive = False
-        # WHAT IS CLIENT PORT NUMBER?
         print("===== New connection created for: ", clientAddress)
         self.clientAlive = True
         
@@ -58,9 +58,8 @@ class ClientThread(Thread):
         
     def run(self):
         message = ''
-        # currentLoginAttempt = 0
+        currentLoginAttempt = 0
         
-
         while self.clientAlive:
             # use recv() to receive message from the client
             data = self.clientSocket.recv(1024)
@@ -73,20 +72,36 @@ class ClientThread(Thread):
             
             # handle message from the client
             print(message)
-            # username = ''
             command = message[0]
+            
             if command == 'login':
                 operationType = message[1]
+                username = message[2]
                 print("[recv] New login request")
                 if operationType == "username":
-                    self.clientSocket.send(f"{operationType}{str(usernameExist(message[2]))}".encode())
+                    usernameMsg = f"{operationType}{str(usernameExist(username))}"
+                    self.clientSocket.send(usernameMsg.encode())
                 elif operationType == "auth":
-                    result = userAuthenticator(message[2], message[3])
-                    self.clientSocket.send(f"{operationType}{str(result)}".encode())
-                    # TODO: if currentLoginAttempt == failAttempts:
+                    authMsg = ""
+                    result = userAuthenticator(username, message[3])
+                    # Check user is not in blocked list first.
+                    if userInBlockedList(username, blockedAccList) and result is False:
+                        authMsg += "Blocked"
+                    # Otherwise process with user auth check.
+                    else:
+                        authMsg = f"{operationType}{str(result)}"
+                        currentLoginAttempt += 1
+                        if currentLoginAttempt >= failAttempts and result is False:
+                            blockedAccList.append(
+                                {
+                                    "username": username,
+                                    "blockedTime": printCurrentTime()
+                                }
+                            )
+                            authMsg += "Blocked"
+                    self.clientSocket.send(authMsg.encode())
+                # Login successfully, and UDP port has been attached.
                 elif operationType == "port":
-                    # Means login successfully, and UDP port has been attached.
-                    username = message[2]
                     UDPportNumber = message[3]
                     loginInTime = printCurrentTime()
                     activeUserList.append(
@@ -98,7 +113,12 @@ class ClientThread(Thread):
                         }
                     )
                     updateActiveUserLog(activeUserList)
-                # currentLoginAttempt += 1
+                    # Remove the user from blockedList if in.
+                    for name in blockedAccList:
+                        if username == name["username"]:
+                            blockedAccList.remove(name)
+                    # Reset the currentLoginAttmpt.
+                    currentLoginAttempt = 0
             elif command == 'BCM':
                 BCMmsg = ""
                 for i in range(2, len(message)):
@@ -233,19 +253,6 @@ class ClientThread(Thread):
                 # Update the userlog.txt by removing the current user and updating seq.
                 updateActiveUserLog(activeUserList)
 
-
-
-    """
-        You can create more customized APIs here, e.g., logic for processing user authentication
-        Each api can be used to handle one specific function, for example:
-        def process_login(self):
-            message = 'user credentials request'
-            self.clientSocket.send(message.encode())
-    """
-    # def process_login(self):
-    #     message = 'user credentials request'
-    #     print('[send] ' + message);
-    #     self.clientSocket.send(message.encode())
 
 
 print("\n===== Server is running =====")
