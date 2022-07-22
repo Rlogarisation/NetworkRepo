@@ -10,7 +10,7 @@ from socket import *
 import sys, time
 
 commandPrompting = "\
-======================The following commands are available:======================\n\
+The following commands are available:\n\
 BCM: Public messages, usage: BCM message\n\
 ATU: Display active users, usage: ATU\n\
 SRB: Separate room building, usage: SRB username1 username2 ...\n\
@@ -27,31 +27,41 @@ if len(sys.argv) != 4:
     exit(0)
 serverHost = sys.argv[1]
 serverPort = int(sys.argv[2])
-UDPServerPort = sys.argv[3]
+UDPServerPort = int(sys.argv[3])
 serverAddress = (serverHost, serverPort)
 
 # define a socket for the client side, it would be used to communicate with the server
 clientSocket = socket(AF_INET, SOCK_STREAM)
-
 # build connection with the server and send message to it
 clientSocket.connect(serverAddress)
 
+# serverSocketUDP = socket(AF_INET, SOCK_DGRAM)
+# serverSocketUDP.bind((serverHost, UDPServerPort))
+
+
+# User authentication section.
 while True:
-    # Check username input:
+    # Requesting username as input:
     username = input("Enter your username: ").strip()
+    # Dealing with potential edge cases:
+    if username == "":
+        continue
     usernameMsg = f"login username {username}"
     clientSocket.sendall(usernameMsg.encode())
 
     # Receive response from the server
-    data = clientSocket.recv(1024)
+    data = clientSocket.recv(2048)
     usernameResponse = data.decode()
 
-    # Username has been found in the database.
+    # Username has been found in the database, 
+    # checking the password correctness.
     while usernameResponse == "usernameTrue":
         password = input("Enter your password: ").strip()
+        if password == "":
+            continue
         authMsg = f"login auth {username} {password}"
         clientSocket.sendall(authMsg.encode())
-        data = clientSocket.recv(1024)
+        data = clientSocket.recv(2048)
         passwordResponse = data.decode()
         if passwordResponse == "authTrue":
             print("Login in successfully! Welcome!")
@@ -69,44 +79,71 @@ while True:
     else:
         break
 
+# User command and operation section.
 while True:
+    # Section for entering the command.
     while True:
         inputmsg = input(commandPrompting)
+        if inputmsg == "":
+            print("Please enter valid command!\n")
+            time.sleep(1)
+            continue
         inputList = inputmsg.split()
         command = inputList[0]
         if command in acceptedCommand:
             if command == "BCM" and len(inputList) < 2:
-                print("===== Error usage, BCM message======\n")
+                print("Error usage, there should be 1 argument for this command, \nSample Usage: BCM message\n")
+            elif command == "ATU" and not len(inputList) == 1:
+                print("Error usage, there should be no argument for this command, \nSample usage: ATU\n")
             elif command == "SRB" and len(inputList) < 2:
-                print("===== Error usage, SRB username1 username2 ...======\n")
+                print("Error usage, there should be at least 1 argument for this command, \nSample usage: SRB username1 username2 ...\n")
             elif command == "SRM" and len(inputList) < 3:
-                print("===== Error usage, SRM roomID message======\n")
+                print("Error usage, there should be 2 arguments for this command, \nSample usage: SRM roomID message\n")
+            elif command == "RDM" and not len(inputList) == 3:
+                print("Error usage, there should be 2 arguments for this command, \nSample usage: RDM messageType(b or s) timestamp(1 Jun 2022 16:00:00)\n")
+            elif command == "OUT" and not len(inputList) == 1:
+                print("Error usage, there should be no argument for this command, \nSample usage: OUT\n")
+            elif command == "UPD" and not len(inputList) == 3:
+                print("Error usage, there should be 2 arguments for this command, \nSample usage: UPD username filename\n")
             else:
                 break
         else:    
-            print(f"Command {command} is not recognised, please try again!")
+            print(f"ERROR: Command {command} is not recognised, please try again!\n")
+        time.sleep(1)
     if command == "BCM":
         inputmsg = ""
         for i in range(1, len(inputList)):
             inputmsg += inputList[i] + ' '
-        BCMmsg = f"BCM {username} {inputmsg}"
-        clientSocket.sendall(BCMmsg.encode())
-        data = clientSocket.recv(1024)
-        BCMmsgResponse = data.decode()
+        clientSocket.sendall(f"BCM {username} {inputmsg}".encode())
+        BCMmsgResponse = clientSocket.recv(2048).decode()
         print(f"BCM msg has been received at server: {BCMmsgResponse}")
     elif command == "ATU":
         clientSocket.sendall("ATU".encode())
-        data = clientSocket.recv(1024)
-        ATUResponse = data.decode()
+        ATUResponse = clientSocket.recv(2048).decode()
         print(ATUResponse)
     elif command == "SRB" or command == "SRM" or command == "RDM":
         clientSocket.sendall(inputmsg.encode())
-        data = clientSocket.recv(1024)
+        data = clientSocket.recv(2048)
         print(data.decode())
     elif command == "OUT":
         print("Goodbye! See you next time!")
         clientSocket.sendall(inputmsg.encode())
         break
+    # elif command == "UPD":
+        # clientSocket.sendall(inputmsg.encode())
+        # data = clientSocket.recv(2048)
+        # if data.startswith("UPD"):
+        #     audienceAddress = data.split()[1]
+        #     audienceUDPPort = data.split()[2]
+        #     # Starting UDP connection with audience.
+
+        # else:
+        #     print(data)
+        # serverSocketUDP.sendto("Hellp".encode(), (serverHost, 1207))
         
+
 # close the socket
 clientSocket.close()
+
+
+

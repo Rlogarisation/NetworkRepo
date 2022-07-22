@@ -62,7 +62,7 @@ class ClientThread(Thread):
         
         while self.clientAlive:
             # use recv() to receive message from the client
-            data = self.clientSocket.recv(1024)
+            data = self.clientSocket.recv(2048)
             message = data.decode().split()
             # if the message from client is empty, the client would be off-line then set the client as offline (alive=Flase)
             if len(message) < 1:
@@ -73,14 +73,15 @@ class ClientThread(Thread):
             # handle message from the client
             print(message)
             command = message[0]
-            
             if command == 'login':
                 operationType = message[1]
                 username = message[2]
-                print("[recv] New login request")
+                print("New login request")
+                # Checking the existence of username.
                 if operationType == "username":
                     usernameMsg = f"{operationType}{str(usernameExist(username))}"
                     self.clientSocket.send(usernameMsg.encode())
+                # Checking the password correctness with given username.
                 elif operationType == "auth":
                     authMsg = ""
                     result = userAuthenticator(username, message[3])
@@ -252,7 +253,21 @@ class ClientThread(Thread):
                         activeUserList.remove(user)
                 # Update the userlog.txt by removing the current user and updating seq.
                 updateActiveUserLog(activeUserList)
-
+            elif command == "UPD":
+                UPDMsg = ""
+                # check whether given username is active.
+                audience = message[1]
+                if not usernameExist(audience):
+                    UPDMsg = f"Audience {audience} is not existed!"
+                elif not userIsActive(audience, activeUserList):
+                    UPDMsg = f"audience {audience} is offline!"
+                else:
+                    for user in activeUserList:
+                        if user["username"] == audience:
+                            audienceAddress = user["address"]
+                            UDPPort = user["UDPPortNumber"]
+                            UPDMsg = f"UPD {audienceAddress} {UDPPort}"
+                self.clientSocket.send(UPDMsg.encode())
 
 
 print("\n===== Server is running =====")
