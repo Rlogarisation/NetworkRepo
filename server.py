@@ -12,49 +12,47 @@ from threading import Thread
 from helper import *
 
 
-
-# acquire server host and port from command line parameter
+# Acquire server host and port from command line parameter
 if len(sys.argv) != 3:
     print("\n===== Error usage, python3 server.py server_port number_of_consecutive_failed_attempts======\n")
     exit(0)
 serverHost = "127.0.0.1"
+# Edge case for server port input.
+if not (sys.argv[1]).isdigit() or int(sys.argv[1]) < 0 or int(sys.argv[1]) > 65535:
+    print("\n===== Error usage, server port valid range is between 0 and 65536======\n")
+    exit(0)
 serverPort = int(sys.argv[1])
 serverAddress = (serverHost, serverPort)
-failAttempts = int(sys.argv[2])
-if failAttempts < 1 or failAttempts > 5:
-    print(f"\n===== Error usage, Invalid number of allowed failed consecutive attempt: 1 <= {failAttempts} <= 5======\n")
+# Edge case for fail attempt input.
+if not (sys.argv[2]).isdigit() or int(sys.argv[2]) < 1 or int(sys.argv[2]) > 5:
+    print(f"\n===== Error usage, the valid range for the number of allowed failed consecutive attempt is between 1 and 5.======\n")
     exit(0)
+failAttempts = int(sys.argv[2])
 
 # define socket for the server side and bind address
 serverSocket = socket(AF_INET, SOCK_STREAM)
 serverSocket.bind(serverAddress)
 
+# Reset the log files from pervious server history.
 resetUserlog()
 resetBCMRecord()
 # TODO: reset SRM room records.
 
+# Initiate the container for recording user data.
 blockedAccList = []
 BCMMsgList = []
 activeUserList = []
 separateRoomList = []
-"""
-    Define multi-thread class for client
-    This class would be used to define the instance for each connection from each client
-    For example, client-1 makes a connection request to the server, the server will call
-    class (ClientThread) to define a thread for client-1, and when client-2 make a connection
-    request to the server, the server will call class (ClientThread) again and create a thread
-    for client-2. Each client will be runing in a separate thread, which is the multi-threading
-"""
+
+# Define multi-thread class for client
 class ClientThread(Thread):
     def __init__(self, clientAddress, clientSocket):
         Thread.__init__(self)
         self.clientAddress = clientAddress
         self.clientSocket = clientSocket
         self.clientAlive = False
-        print("===== New connection created for: ", clientAddress)
+        print(f"===== New connection created for: {clientAddress} =====")
         self.clientAlive = True
-        
-        
         
     def run(self):
         message = ''
@@ -67,32 +65,35 @@ class ClientThread(Thread):
             # if the message from client is empty, the client would be off-line then set the client as offline (alive=Flase)
             if len(message) < 1:
                 self.clientAlive = False
-                print("===== the user disconnected - ", clientAddress)
+                print(f"===== The user disconnected - {clientAddress} =====")
                 break
             
             # handle message from the client
-            print(message)
+            print(f"Server has received messsage: {message}")
             command = message[0]
             if command == 'login':
                 operationType = message[1]
                 username = message[2]
-                print("New login request")
                 # Checking the existence of username.
                 if operationType == "username":
                     usernameMsg = f"{operationType}{str(usernameExist(username))}"
+                    print("Checking username request has been received.")
                     self.clientSocket.send(usernameMsg.encode())
                 # Checking the password correctness with given username.
                 elif operationType == "auth":
+                    print("Authentication request has been received.")
                     authMsg = ""
                     result = userAuthenticator(username, message[3])
                     # Check user is not in blocked list first.
                     if userInBlockedList(username, blockedAccList) and result is False:
+                        print(f"User {username} is already in blocked list and password is still incorrect!")
                         authMsg += "Blocked"
                     # Otherwise process with user auth check.
                     else:
                         authMsg = f"{operationType}{str(result)}"
                         currentLoginAttempt += 1
                         if currentLoginAttempt >= failAttempts and result is False:
+                            print("The maximum login attmpts have been reached, now blocking this user!")
                             blockedAccList.append(
                                 {
                                     "username": username,
@@ -103,6 +104,7 @@ class ClientThread(Thread):
                     self.clientSocket.send(authMsg.encode())
                 # Login successfully, and UDP port has been attached.
                 elif operationType == "port":
+                    print(f"User {username} has been successfully login!")
                     UDPportNumber = message[3]
                     loginInTime = printCurrentTime()
                     activeUserList.append(
@@ -137,6 +139,7 @@ class ClientThread(Thread):
                         "content": BCMmsg
                     }
                 )
+                print(f"{username} broadcasted message{currentBCMMsgLength + 1} at {BCMReceivedTime}: {BCMmsg}")
                 # Reply to client
                 self.clientSocket.send(f"BCM {currentBCMMsgLength + 1} {BCMReceivedTime}".encode())
             elif command == 'ATU':
@@ -149,7 +152,8 @@ class ClientThread(Thread):
                     if not listUsername == username:
                         ATUMsg += f"{listUsername} at IP {listIPAddress} port {listPortNumber} active since {listTime}\n"
                 if ATUMsg == "":
-                    ATUMsg = "no other active user"
+                    ATUMsg = "No other active user"
+                print(f"The request for checking active user has been received:\n{ATUMsg}")
                 self.clientSocket.send(ATUMsg.encode())
             elif command == 'SRB':
                 SRBMsg = ""
@@ -179,9 +183,9 @@ class ClientThread(Thread):
                         }
                     )
                     SRBMsg = f"Separate chat room has been created as room ID: {currentRoomID}, users in this room: {currentMemberList}\n"
+                print(f"The request for creating separate chat room has been received:\n{SRBMsg}")
                 self.clientSocket.send(SRBMsg.encode())
             elif command == "SRM":
-                print(separateRoomList)
                 SRMReplyMsg = ""
                 SRMInputMsg = ""
                 inputRoomID = int(message[1])
@@ -192,7 +196,7 @@ class ClientThread(Thread):
                     SRMReplyMsg = f"The separate room (ID: {inputRoomID}) does not exist"
                 # Check if the client is a member of the separate room
                 elif not memberIsPartOfRoom(username, separateRoomList):
-                    SRMReplyMsg = f"You are not in this separate room (ID: {inputRoomID})chat"
+                    SRMReplyMsg = f"User is not in this separate room (ID: {inputRoomID})chat"
                 # Append the message, the username, and a timestamp at the end of the message log file
                 else:
                     currentTime = printCurrentTime()
@@ -213,6 +217,7 @@ class ClientThread(Thread):
                     
                     recordSRM(inputRoomID, currentNumberOfMsg + 1, currentTime, username, SRMInputMsg)
                     SRMReplyMsg = f"SRM message {currentNumberOfMsg + 1} has been received at {currentTime}\n"
+                print(f"The request for sending message in chat room has been received:\n{SRMReplyMsg}")
                 self.clientSocket.send(SRMReplyMsg.encode())
             elif command == "RDM":
                 RDMReplyMsg = ""
@@ -226,7 +231,7 @@ class ClientThread(Thread):
                         currentMsgSender = BCMMsgs["sender"]
                         currentMsgSentTime = BCMMsgs["sentTime"]
                         currentMsgNumber = BCMMsgs["BCMMessageNumber"]
-                        currentMsgContent =BCMMsgs["content"]
+                        currentMsgContent = BCMMsgs["content"]
                         if timeComparator(inputTime.rstrip(), currentMsgSentTime) < 0:
                             RDMReplyMsg += f"#{currentMsgNumber} {currentMsgSender}@{currentMsgSentTime}: {currentMsgContent}\n"
                 # Separate room messages retrival
@@ -245,6 +250,7 @@ class ClientThread(Thread):
 
                 if RDMReplyMsg == "":
                     RDMReplyMsg = "No new message"
+                print(f"The request for reading messages has been received:\n{RDMReplyMsg}")
                 self.clientSocket.send(RDMReplyMsg.encode())
             elif command == "OUT":
                 # Remove current user from activeUserList:
@@ -253,6 +259,7 @@ class ClientThread(Thread):
                         activeUserList.remove(user)
                 # Update the userlog.txt by removing the current user and updating seq.
                 updateActiveUserLog(activeUserList)
+                print(f"The log out request has been received")
             elif command == "UPD":
                 UPDMsg = ""
                 # check whether given username is active.
@@ -267,6 +274,7 @@ class ClientThread(Thread):
                             audienceAddress = user["address"]
                             UDPPort = user["UDPPortNumber"]
                             UPDMsg = f"UPD {audienceAddress} {UDPPort}"
+                            # TODO: Further implement.
                 self.clientSocket.send(UPDMsg.encode())
 
 
