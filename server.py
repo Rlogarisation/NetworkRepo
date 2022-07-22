@@ -271,7 +271,7 @@ class ClientThread(Thread):
                 else:
                     for user in activeUserList:
                         if user["username"] == audience:
-                            audienceAddress = user["address"]
+                            audienceAddress, audienceTCPPortNumber = user["address"]
                             UDPPort = user["UDPPortNumber"]
                             UPDMsg = f"UPD {audienceAddress} {UDPPort}"
                             # TODO: Further implement.
