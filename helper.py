@@ -11,6 +11,11 @@ import time, os
 from datetime import datetime
 
 def usernameExist(username):
+    '''
+    Check whether username is existed in credentials.txt
+    @Input username as String type 
+    @Output The function will return true if existed, else false.
+    '''
     with open("credentials.txt") as file:
         for i in file.readlines():
             if i.split()[0] == username:
@@ -18,6 +23,11 @@ def usernameExist(username):
         return False
 
 def userAuthenticator(username, password):
+    '''
+    Check whether username and password are identical as shown in credentials.txt
+    @Input username and password as String types
+    @Output The function will return true if identical, else false.
+    '''
     with open("credentials.txt") as file:
         for i in file.readlines():
             info = i.split()
@@ -26,22 +36,36 @@ def userAuthenticator(username, password):
         return False
 
 def userInBlockedList(username, blockedList):
+    '''
+    Check whether username is contained in the blocked list for login.
+    @Input username as String type and blockedList in the format of 
+        [
+            {
+                "username": username,
+                "blockedTime": printCurrentTime()
+            }
+        ]
+    @Output The function will return true if contained, else false.
+    '''
     for name in blockedList:
         if username == name["username"]:
             return True
     return False
 
+
 def updateActiveUserLog(activeUserList):
     '''
-    activeUserList structure format:
-    [
-        {
-            'username':username,
-            'address':self.clientAddress,
-            'UDPPortNumber':UDPportNumber,
-            'activeTime': loginInTime
-        }
-    ]
+    Update the user log file based on the given active user list.
+    @Input activeUserList in the format of
+        [
+            {
+                'username':username,
+                'address':self.clientAddress,
+                'UDPPortNumber':UDPportNumber,
+                'activeTime': loginInTime
+            }
+        ]
+    @Output The function do not have an output.
     '''
     resetUserlog()
     file = open("userlog.txt", "a")
@@ -54,6 +78,9 @@ def updateActiveUserLog(activeUserList):
     file.close()
 
 def resetUserlog():
+    '''
+    Remove the user log in the current directory.
+    '''
     if os.path.exists("userlog.txt"):
         os.remove("userlog.txt")
 

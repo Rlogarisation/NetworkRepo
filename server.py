@@ -29,7 +29,7 @@ if not (sys.argv[2]).isdigit() or int(sys.argv[2]) < 1 or int(sys.argv[2]) > 5:
     exit(0)
 failAttempts = int(sys.argv[2])
 
-# define socket for the server side and bind address
+# Define socket for the server side and bind address
 serverSocket = socket(AF_INET, SOCK_STREAM)
 serverSocket.bind(serverAddress)
 
