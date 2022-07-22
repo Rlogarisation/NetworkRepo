@@ -195,7 +195,7 @@ class ClientThread(Thread):
                 if not roomIsExist(inputRoomID, separateRoomList):
                     SRMReplyMsg = f"The separate room (ID: {inputRoomID}) does not exist"
                 # Check if the client is a member of the separate room
-                elif not memberIsPartOfRoom(username, separateRoomList):
+                elif not memberIsPartOfRoom(username, inputRoomID, separateRoomList):
                     SRMReplyMsg = f"User is not in this separate room (ID: {inputRoomID})chat"
                 # Append the message, the username, and a timestamp at the end of the message log file
                 else:
