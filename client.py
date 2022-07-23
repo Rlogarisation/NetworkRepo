@@ -6,9 +6,10 @@ coding: utf-8
 
 Author: Zheng Luo (z5206267)
 """
-from ast import main
+
+from re import L
 from socket import *
-import sys, time, threading
+import sys, time, threading, os
 
 commandPrompting = "\
 The following commands are available:\n\
@@ -43,7 +44,9 @@ serverSocketUDP.bind(UDPServerAddress)
 # TODO: Re-logging bug
 
 def TCPConnection():
-
+    '''
+    Communicating with server with TCP
+    '''
     # User authentication section.
     while True:
         # Requesting username as input:
@@ -137,11 +140,24 @@ def TCPConnection():
         elif command == "UPD":
             clientSocket.sendall(inputmsg.encode())
             data = clientSocket.recv(2048).decode()
+            # The recipent is existed and actived, ready to send!
             if data.startswith("UPD"):
+                inputFile = inputList[2]
+                # Check whether given file exist in the current directory.
+                if not os.path.exists(inputFile):
+                    print("Input file is not existed in the current directory!")
+                    continue
+                # Starting UDP connection with audience.
                 audienceAddress = data.split()[1]
                 audienceUDPPort = int(data.split()[2])
-                # Starting UDP connection with audience.
-                serverSocketUDP.sendto("Hello World from UDP!".encode(), (audienceAddress, audienceUDPPort))
+                rawFile = open(inputFile, "rb")
+                # fileSize = os.path.getsize(file)
+                # Split large file into multiple small files for transmission.
+                eachFile = rawFile.read(2048)
+                while eachFile:
+                    serverSocketUDP.sendto(eachFile, (audienceAddress, audienceUDPPort))
+                    eachFile = rawFile.read(2048)
+                rawFile.close()
             else:
                 print(data)
 
@@ -149,10 +165,24 @@ def TCPConnection():
     clientSocket.close()
 
 def UDPConnection():
+    '''
+    Communicating with other client(P2P) using UDP connection.
+    '''
     while True:
         data = serverSocketUDP.recv(2048)
-        UDPmsg = data.decode()
-        print(f"[UDP]: {UDPmsg}")
+        receivedFile = open("sample.mp4", "wb")
+        try:
+            while data:
+                receivedFile.write(data)
+                serverSocketUDP.settimeout(2)
+                data = serverSocketUDP.recv(2048)
+        except timeout:
+            print("Download finished.")
+            receivedFile.close()
+            serverSocketUDP.settimeout(None)
+
+
+
 
 if __name__ == "__main__":
     UDP = threading.Thread(target=UDPConnection)
@@ -160,4 +190,3 @@ if __name__ == "__main__":
         
     UDP.start()
     TCP.start()
-
