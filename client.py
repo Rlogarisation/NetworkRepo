@@ -136,6 +136,7 @@ def TCPConnection():
         elif command == "OUT":
             print("Goodbye! See you next time!")
             clientSocket.sendall(inputmsg.encode())
+            # TODO: Need to exit the program
             break
         elif command == "UPD":
             clientSocket.sendall(inputmsg.encode())
@@ -151,12 +152,15 @@ def TCPConnection():
                 audienceAddress = data.split()[1]
                 audienceUDPPort = int(data.split()[2])
                 rawFile = open(inputFile, "rb")
-                # fileSize = os.path.getsize(file)
                 # Split large file into multiple small files for transmission.
-                eachFile = rawFile.read(2048)
+                eachFile = rawFile.read(9216)
+                fileCounter = 1
                 while eachFile:
+                    print(f"I have send the file#{fileCounter} with size of {len(eachFile)}")
+                    time.sleep(0.0001)
+                    fileCounter += 1
                     serverSocketUDP.sendto(eachFile, (audienceAddress, audienceUDPPort))
-                    eachFile = rawFile.read(2048)
+                    eachFile = rawFile.read(9216)
                 rawFile.close()
             else:
                 print(data)
@@ -169,13 +173,16 @@ def UDPConnection():
     Communicating with other client(P2P) using UDP connection.
     '''
     while True:
-        data = serverSocketUDP.recv(2048)
+        data = serverSocketUDP.recv(9216)
         receivedFile = open("sample.mp4", "wb")
         try:
+            dataCounter = 1
             while data:
+                print(f"I have write data pak {dataCounter}: with size of {len(data)}")
+                dataCounter += 1
                 receivedFile.write(data)
-                serverSocketUDP.settimeout(2)
-                data = serverSocketUDP.recv(2048)
+                serverSocketUDP.settimeout(5)
+                data = serverSocketUDP.recv(9216)
         except timeout:
             print("Download finished.")
             receivedFile.close()
