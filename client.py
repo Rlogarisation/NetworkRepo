@@ -7,8 +7,6 @@ coding: utf-8
 Author: Zheng Luo (z5206267)
 """
 
-from fileinput import filename
-from re import L
 from socket import *
 import sys, time, threading, os, math
 
@@ -44,7 +42,6 @@ serverSocketUDP.bind(UDPServerAddress)
 
 PACKET_SIZE = 2048
 
-# TODO: Re-logging bug
 
 def TCPConnection():
     '''
@@ -121,6 +118,7 @@ def TCPConnection():
             else:    
                 print(f"ERROR: Command {command} is not recognised, please try again!\n")
             time.sleep(1)
+        # Operating section for entering the commmand.
         if command == "BCM":
             inputmsg = ""
             for i in range(1, len(inputList)):
@@ -177,6 +175,8 @@ def TCPConnection():
 
     # close the socket
     clientSocket.close()
+    # Exit the whole program.
+    os._exit(os.EX_OK)
 
 def UDPConnection():
     '''
@@ -217,3 +217,6 @@ if __name__ == "__main__":
         
     UDP.start()
     TCP.start()
+
+    
+    
