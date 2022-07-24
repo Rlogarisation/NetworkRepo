@@ -37,6 +37,7 @@ serverSocket.bind(serverAddress)
 resetUserlog()
 resetBCMRecord()
 # TODO: reset SRM room records.
+resetSRMRecord()
 
 # Initiate the container for recording user data.
 blockedAccList = []

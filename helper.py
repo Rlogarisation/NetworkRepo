@@ -7,7 +7,7 @@ coding: utf-8
 Author: Zheng Luo (z5206267)
 """
 
-import time, os
+import time, os, glob
 from datetime import datetime
 
 def usernameExist(username):
@@ -221,9 +221,12 @@ def recordSRM(roomID, msgNumber, time, username, msg):
     file.write(f"{msgNumber}; {time}; {username}; {msg}\n")
     file.close()
 
-# def resetSRMRecord():
-#     if os.path.exists("messagelog.txt"):
-#         os.remove("messagelog.txt")
+def resetSRMRecord():
+    '''
+    Remove the message logs for each room in the current directory.
+    '''
+    for file in glob.glob("*messageLog.txt"):
+        os.remove(file)
 
 def timeComparator(timeA, timeB):
     '''
