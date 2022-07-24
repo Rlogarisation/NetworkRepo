@@ -27,7 +27,14 @@ if len(sys.argv) != 4:
     print("\n===== Error usage, python3 client.py SERVER_IP SERVER_PORT CLIENT_UDP_SERVER_PORT======\n")
     exit(0)
 serverHost = sys.argv[1]
+
+if not (sys.argv[2]).isdigit() or int(sys.argv[2]) < 0 or int(sys.argv[2]) > 65535:
+    print("\n===== Error usage, server port valid range is between 0 and 65536======\n")
+    exit(0)
 serverPort = int(sys.argv[2])
+if not (sys.argv[3]).isdigit() or int(sys.argv[3]) < 0 or int(sys.argv[3]) > 65535:
+    print("\n===== Error usage, UDP server port valid range is between 0 and 65536======\n")
+    exit(0)
 UDPServerPort = int(sys.argv[3])
 serverAddress = (serverHost, serverPort)
 UDPServerAddress = (serverHost, UDPServerPort)
@@ -49,6 +56,8 @@ def TCPConnection():
     '''
     # User authentication section.
     while True:
+        # Assuming there is no empty line in credential.txt.
+        # Assuming there is no repeated username.
         # Requesting username as input:
         username = input("Enter your username: ").strip()
         # Dealing with potential edge cases:
@@ -184,7 +193,6 @@ def UDPConnection():
     '''
     while True:
         data = serverSocketUDP.recv(PACKET_SIZE).decode()
-        print(data)
         if data.split()[0] == "UPD":
             username = data.split()[1]
             fileName = data.split()[2]
@@ -200,7 +208,7 @@ def UDPConnection():
                     print(f"Receiving data packets {dataCounter}/{totalPacketSize}")
                     dataCounter += 1
                     receivedFile.write(data)
-                    serverSocketUDP.settimeout(2)
+                    serverSocketUDP.settimeout(1)
                     data = serverSocketUDP.recv(PACKET_SIZE)
             except timeout:
                 print("Download finished.")

@@ -149,21 +149,26 @@ class ClientThread(Thread):
                     listIPAddress = user["address"][0]
                     listPortNumber = user["address"][1]
                     listTime = user["activeTime"]
+                    listUDPPortNumber = user["UDPPortNumber"]
                     if not listUsername == username:
-                        ATUMsg += f"{listUsername} at IP {listIPAddress} port {listPortNumber} active since {listTime}\n"
+                        ATUMsg += f"{listUsername} with UDP port{listUDPPortNumber} at IP{listIPAddress} port{listPortNumber} active since {listTime}\n"
                 if ATUMsg == "":
                     ATUMsg = "No other active user"
                 print(f"The request for checking active user has been received:\n{ATUMsg}")
                 self.clientSocket.send(ATUMsg.encode())
             elif command == 'SRB':
+                # Assuming usernames are different, 
+                # Input username cannot input repetitively.
                 SRBMsg = ""
                 currentMemberList = [username]
-                # Check all user exist and active.
+                # Check all user exist and active, and didn't include host itself
                 for i in range(1, len(message)):
                     if not usernameExist(message[i]):
-                        SRBMsg += f"user {message[i]} is not exist!\n"
+                        SRBMsg += f"User {message[i]} is not exist!\n"
                     elif not userIsActive(message[i], activeUserList):
-                        SRBMsg += f"user {message[i]} is not active!\n"
+                        SRBMsg += f"User {message[i]} is not active!\n"
+                    elif username == message[i]:
+                        SRBMsg += f"User {message[i]} cannot build a separate room with himself/herself!\n"
                     else:
                         currentMemberList.append(message[i])
                 
@@ -259,22 +264,23 @@ class ClientThread(Thread):
                         activeUserList.remove(user)
                 # Update the userlog.txt by removing the current user and updating seq.
                 updateActiveUserLog(activeUserList)
-                print(f"The log out request has been received")
+                print(f"The log out request for {username} has been received\n")
             elif command == "UPD":
                 UPDMsg = ""
                 # check whether given username is active.
                 audience = message[1]
                 if not usernameExist(audience):
-                    UPDMsg = f"Audience {audience} is not existed!"
+                    UPDMsg = f"Audience {audience} is not existed!\n"
                 elif not userIsActive(audience, activeUserList):
-                    UPDMsg = f"audience {audience} is offline!"
+                    UPDMsg = f"Audience {audience} is offline!\n"
                 else:
                     for user in activeUserList:
                         if user["username"] == audience:
                             audienceAddress, audienceTCPPortNumber = user["address"]
                             UDPPort = user["UDPPortNumber"]
                             UPDMsg = f"UPD {audienceAddress} {UDPPort}"
-                            # TODO: Further implement.
+                            print(f"Audience {audience} is existed and actived!")
+                print(UPDMsg)
                 self.clientSocket.send(UPDMsg.encode())
 
 
