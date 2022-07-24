@@ -7,9 +7,10 @@ coding: utf-8
 Author: Zheng Luo (z5206267)
 """
 
+from fileinput import filename
 from re import L
 from socket import *
-import sys, time, threading, os
+import sys, time, threading, os, math
 
 commandPrompting = "\
 The following commands are available:\n\
@@ -41,6 +42,8 @@ clientSocket.connect(serverAddress)
 serverSocketUDP = socket(AF_INET, SOCK_DGRAM)
 serverSocketUDP.bind(UDPServerAddress)
 
+PACKET_SIZE = 2048
+
 # TODO: Re-logging bug
 
 def TCPConnection():
@@ -58,7 +61,7 @@ def TCPConnection():
         clientSocket.sendall(usernameMsg.encode())
 
         # Receive response from the server
-        data = clientSocket.recv(2048)
+        data = clientSocket.recv(PACKET_SIZE)
         usernameResponse = data.decode()
 
         # Username has been found in the database, 
@@ -69,7 +72,7 @@ def TCPConnection():
                 continue
             authMsg = f"login auth {username} {password}"
             clientSocket.sendall(authMsg.encode())
-            data = clientSocket.recv(2048)
+            data = clientSocket.recv(PACKET_SIZE)
             passwordResponse = data.decode()
             if passwordResponse == "authTrue":
                 print("Login in successfully! Welcome!")
@@ -123,15 +126,15 @@ def TCPConnection():
             for i in range(1, len(inputList)):
                 inputmsg += inputList[i] + ' '
             clientSocket.sendall(f"BCM {username} {inputmsg}".encode())
-            BCMmsgResponse = clientSocket.recv(2048).decode()
+            BCMmsgResponse = clientSocket.recv(PACKET_SIZE).decode()
             print(f"BCM msg has been received at server: {BCMmsgResponse}")
         elif command == "ATU":
             clientSocket.sendall("ATU".encode())
-            ATUResponse = clientSocket.recv(2048).decode()
+            ATUResponse = clientSocket.recv(PACKET_SIZE).decode()
             print(ATUResponse)
         elif command == "SRB" or command == "SRM" or command == "RDM":
             clientSocket.sendall(inputmsg.encode())
-            data = clientSocket.recv(2048)
+            data = clientSocket.recv(PACKET_SIZE)
             print(data.decode())
         elif command == "OUT":
             print("Goodbye! See you next time!")
@@ -140,10 +143,11 @@ def TCPConnection():
             break
         elif command == "UPD":
             clientSocket.sendall(inputmsg.encode())
-            data = clientSocket.recv(2048).decode()
+            data = clientSocket.recv(PACKET_SIZE).decode()
             # The recipent is existed and actived, ready to send!
             if data.startswith("UPD"):
                 inputFile = inputList[2]
+                inputFileSize = os.path.getsize(inputFile)
                 # Check whether given file exist in the current directory.
                 if not os.path.exists(inputFile):
                     print("Input file is not existed in the current directory!")
@@ -151,16 +155,22 @@ def TCPConnection():
                 # Starting UDP connection with audience.
                 audienceAddress = data.split()[1]
                 audienceUDPPort = int(data.split()[2])
-                rawFile = open(inputFile, "rb")
+                # Inform the audience to receive files.
+                informMsg = f"UPD {username} {inputFile} {inputFileSize}"
+                serverSocketUDP.sendto(informMsg.encode(), (audienceAddress, audienceUDPPort))
+
                 # Split large file into multiple small files for transmission.
-                eachFile = rawFile.read(9216)
+                rawFile = open(inputFile, "rb")
+                eachFile = rawFile.read(PACKET_SIZE)
                 fileCounter = 1
                 while eachFile:
-                    print(f"I have send the file#{fileCounter} with size of {len(eachFile)}")
+                    print(f"Sending the file#{fileCounter} with size of {len(eachFile)}")
+                    # Sending the UDP packages too fast will result the packages cannnot all be received,
+                    # Hence a small gap of wait time is implemented.
                     time.sleep(0.0001)
                     fileCounter += 1
                     serverSocketUDP.sendto(eachFile, (audienceAddress, audienceUDPPort))
-                    eachFile = rawFile.read(9216)
+                    eachFile = rawFile.read(PACKET_SIZE)
                 rawFile.close()
             else:
                 print(data)
@@ -173,20 +183,30 @@ def UDPConnection():
     Communicating with other client(P2P) using UDP connection.
     '''
     while True:
-        data = serverSocketUDP.recv(9216)
-        receivedFile = open("sample.mp4", "wb")
-        try:
-            dataCounter = 1
-            while data:
-                print(f"I have write data pak {dataCounter}: with size of {len(data)}")
-                dataCounter += 1
-                receivedFile.write(data)
-                serverSocketUDP.settimeout(5)
-                data = serverSocketUDP.recv(9216)
-        except timeout:
-            print("Download finished.")
-            receivedFile.close()
-            serverSocketUDP.settimeout(None)
+        data = serverSocketUDP.recv(PACKET_SIZE).decode()
+        print(data)
+        if data.split()[0] == "UPD":
+            username = data.split()[1]
+            fileName = data.split()[2]
+            fileSize = int(data.split()[3])
+            totalPacketSize = math.ceil(fileSize/PACKET_SIZE)
+            receivedFileName = f"{username}_{fileName}"
+            print(f"Receiving file {fileName} {fileSize}bytes {totalPacketSize} packets in total from {username}")
+            receivedFile = open(receivedFileName, "wb")
+            try:
+                dataCounter = 1
+                data = serverSocketUDP.recv(PACKET_SIZE)
+                while data:
+                    print(f"Receiving data packets {dataCounter}/{totalPacketSize}")
+                    dataCounter += 1
+                    receivedFile.write(data)
+                    serverSocketUDP.settimeout(2)
+                    data = serverSocketUDP.recv(PACKET_SIZE)
+            except timeout:
+                print("Download finished.")
+                print(commandPrompting)
+                receivedFile.close()
+                serverSocketUDP.settimeout(None)
 
 
 
