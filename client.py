@@ -8,7 +8,7 @@ Author: Zheng Luo (z5206267)
 """
 
 from socket import *
-import sys, time, threading, os, math
+import sys, time, threading, os, math, datetime
 
 # Constant declaration section
 COMMAND_PROMPTING = "\
@@ -117,6 +117,10 @@ def UDPConnection():
                 serverSocketUDP.settimeout(None)
 
 def userAuthenticationSection():
+    '''
+    userAuthenticationSection will prompt users to enter their username and password,
+    until they have been log in successfully.
+    '''
     while True:
         # Assuming there is no empty line in credential.txt.
         # Assuming there is no repeated username.
@@ -160,6 +164,9 @@ def userAuthenticationSection():
     return username
 
 def commandPreChecking():
+    '''
+    commandPreChecking function prechecks the user input.
+    '''
     while True:
         inputmsg = input(COMMAND_PROMPTING)
         if inputmsg == "":
@@ -175,9 +182,15 @@ def commandPreChecking():
                 print("Error usage, there should be no argument for this command, \nSample usage: ATU\n")
             elif command == "SRB" and len(inputList) < 2:
                 print("Error usage, there should be at least 1 argument for this command, \nSample usage: SRB username1 username2 ...\n")
-            elif command == "SRM" and len(inputList) < 3:
+            elif command == "SRM" and (len(inputList) < 3 or not inputList[1].isdigit()):
                 print("Error usage, there should be 2 arguments for this command, \nSample usage: SRM roomID message\n")
-            elif command == "RDM" and not len(inputList) == 3:
+            elif command == "RDM" and (not len(inputList) == 6 or not (inputList[1] == "b" or inputList[1] == "s")):
+                # Check given time string format:
+                inputTime = f"{inputList[2]} {inputList[3]} {inputList[4]} {inputList[5]}"
+                try:
+                    datetime.datetime.strptime(inputTime, '%d %b %Y %H:%M:%S')
+                except ValueError:
+                    raise ValueError("Incorrect data format, should be %d %b %Y %H:%M:%S")
                 print("Error usage, there should be 2 arguments for this command, \nSample usage: RDM messageType(b or s) timestamp(1 Jun 2022 16:00:00)\n")
             elif command == "OUT" and not len(inputList) == 1:
                 print("Error usage, there should be no argument for this command, \nSample usage: OUT\n")
@@ -191,6 +204,9 @@ def commandPreChecking():
     return inputmsg
 
 def UPDFileSending(inputmsg, inputList, username):
+    '''
+    UPDFileSending section perform the operation for sending UPD file to other users.
+    '''
     clientSocket.sendall(inputmsg.encode())
     data = clientSocket.recv(PACKET_SIZE).decode()
     # The recipent is existed and actived, ready to send!

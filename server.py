@@ -36,7 +36,6 @@ serverSocket.bind(serverAddress)
 # Reset the log files from pervious server history.
 resetUserlog()
 resetBCMRecord()
-# TODO: reset SRM room records.
 resetSRMRecord()
 
 # Initiate the container for recording user data.
@@ -54,6 +53,8 @@ class ClientThread(Thread):
         self.clientAlive = False
         print(f"===== New connection created for: {clientAddress} =====")
         self.clientAlive = True
+
+    
         
     def run(self):
         message = ''
@@ -283,6 +284,7 @@ class ClientThread(Thread):
                             print(f"Audience {audience} is existed and actived!")
                 print(UPDMsg)
                 self.clientSocket.send(UPDMsg.encode())
+
 
 
 print("\n===== Server is running =====")
